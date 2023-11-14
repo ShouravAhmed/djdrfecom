@@ -1,0 +1,25 @@
+
+
+POST http://127.0.0.1:8000/api/auth/send-otp/
+Content-Type: application/json
+
+{"phone_number":"01803206223"}
+###
+
+
+POST http://127.0.0.1:8000/api/auth/token/
+Content-Type: application/json
+
+{ "phone_number":"01803206223", "otp":"458274", "password" : "4321" }
+###
+
+
+POST http://127.0.0.1:8000/api/auth/token/refresh/
+Content-Type: application/json
+
+{ "refresh":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTcxNTEwMzk2NSwiaWF0IjoxNjk5NTUxOTY1LCJqdGkiOiI2YjJjNDRjNjRiYmI0NzY4YTc4M2JlYTA4NDk2NjZkMiIsInVzZXJfaWQiOiIwMTgwMzIwNjIyMyJ9.lpuIP59rUDOYXJgB1owZV1WgveCcwu7LhnmTrHiarac" }
+###
+
+GET http://127.0.0.1:8000/api/auth/get-user/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzAyMTQzOTY1LCJpYXQiOjE2OTk1NTE5NjUsImp0aSI6IjE2ZTI0MzUzYmQwYTQ1NmNhYTkwZGM3N2NjMmVmOGMwIiwidXNlcl9pZCI6IjAxODAzMjA2MjIzIn0.81Ybd_qzwyxcTyfVYS80y-tst7RjF66M0FORW7rRI2k
+###
