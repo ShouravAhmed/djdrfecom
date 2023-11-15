@@ -35,6 +35,8 @@ python manage.py createsuperuser
 
 pip freeze > requirements.txt
 
+
+
 # Git & Github
 
 *create a new repository on the command line*
@@ -62,5 +64,3 @@ git fetch origin
 git branch -u origin/dev dev
 git remote set-head origin -a
 ```
-
-git config --global init.defaultBranch DJEcom
