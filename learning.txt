@@ -1,0 +1,32 @@
+------------------------------------------------------------------------------
+# use extension for django databases: ex. gene indexes
+
+# justfy why you need json field in your sql database
+
+# write test for your app
+
+# use service to communicate with model from app
+
+# ORM optimization
+
+# hide admin page
+
+------------------------------------------------------------------------------
+complete django - part - 1
+------------------------------------------------------------------------------
+GENDER_CHOICES = (
+    ('M', 'Male'),
+    ('F', 'Female'),
+    ('O', 'Other')
+)
+Class AdminLevel(models.IntegerChoices):
+    User = 0, 'User'
+    Admin = 1, 'Admin'
+
+class User(models.Model):
+    gender = model.CharField(
+        max_length = 5,
+        choices = GENDER_CHOICES
+    )
+    admin_level = model.IntegerLevel(choices=AdminLevel.choices, default=AdminLevel.user)
+------------------------------------------------------------------------------

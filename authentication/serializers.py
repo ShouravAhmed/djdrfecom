@@ -47,7 +47,10 @@ class LoginSerializer(TokenObtainPairSerializer):
                 _("OTP is not correct."), code='authorization')
 
         refresh = RefreshToken.for_user(user)
+        serializer = UserSerializer(user, many=False)
+
         return {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
+            'user': serializer.data
         }

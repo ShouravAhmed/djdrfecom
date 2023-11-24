@@ -1,8 +1,7 @@
+import random
 from datetime import datetime, timedelta
 
-import random
 from django.core.cache import cache
-
 from rest_framework import status
 
 

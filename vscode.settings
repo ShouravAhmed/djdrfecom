@@ -1,0 +1,50 @@
+{
+  "workbench.colorTheme": "Monokai Pro",
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false,
+  "terminal.integrated.enableMultiLinePasteWarning": false,
+  "files.autoSave": "onFocusChange",
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.autopep8",
+    "editor.formatOnType": true,
+    "python.linting.lintOnSave": true,
+    "python.linting.enabled": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true,
+      "source.fixAll": true
+    }
+  },
+  "cmake.configureOnOpen": true,
+  "editor.defaultFormatter": "ms-python.autopep8",
+  "emmet.includeLanguages": { "javascript": "javascriptreact" },
+  "emmet.triggerExpansionOnTab": true,
+  "git.openRepositoryInParentFolders": "never",
+  "python.autoComplete.extraPaths": [
+
+  
+  
+  ],
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python3.10/",
+  "python.analysis.indexing": true,
+  "python.analysis.packageIndexDepths": [
+    {
+      "name": "rest_framework",
+      "depth": 10,
+      "includeAllSymbols": true
+    },
+    {
+      "name": "pathao_api",
+      "depth": 10,
+      "includeAllSymbols": true
+    },
+    {
+      "name": "dotenv",
+      "depth": 10,
+      "includeAllSymbols": true
+    }
+  ],
+  "python.analysis.extraPaths": [],
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "window.zoomLevel": 1,
+}

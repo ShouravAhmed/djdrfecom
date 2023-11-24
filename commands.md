@@ -1,14 +1,16 @@
 # packages
 
-Django
-python-dotenv
-
-djangorestframework
-
-djangorestframework-simplejw
-django-cors-headers
-
-pytest==7.2.0
+Django==4.1
+django-cors-headers==4.3.0
+django-redis==5.4.0
+django-rest-swagger==2.2.0
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.0
+drf-spectacular==0.26.5
+drf-yasg==1.21.7
+python-dotenv==1.0.0
+redis==5.0.1
+requests==2.31.0
 
 # commands
 
@@ -17,7 +19,6 @@ source .venv/bin/activate
 deactivate
 
 django-admin startproject djdrfecom
-
 ./manage.py runserver
 
 from django.core.management.utils import get_random_secret_key
@@ -30,16 +31,15 @@ python manage.py startapp app_name
 python manage.py makemigrations
 python manage.py migrate
 python manage.py runserver
-
 python manage.py createsuperuser
 
 pip freeze > requirements.txt
 
-
+./manage.py spectacular --file schema.yml
 
 # Git & Github
 
-*create a new repository on the command line*
+*create a new repository*
 ```
 echo "# DJEcom" >> README.md
 git init
@@ -50,7 +50,7 @@ git remote add origin https://github.com/ShouravAhmed/DJEcom.git
 git push -u origin main
 ```
 
-*push an existing repository from the command line*
+*push an existing repository*
 ```
 git remote add origin https://github.com/ShouravAhmed/DJEcom.git
 git branch -M main

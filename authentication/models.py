@@ -1,8 +1,8 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from django.contrib.auth.models import AbstractUser
-from .manager import UserManager
 from .enums import StaffLevel
+from .manager import UserManager
 
 
 class User(AbstractUser):
@@ -31,3 +31,9 @@ class User(AbstractUser):
     USERNAME_FIELD = 'phone_number'
     REQUIRED_FIELDS = ['full_name', 'email']
     objects = UserManager()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['phone_number']),
+            models.Index(fields=['staff_level']),
+        ]

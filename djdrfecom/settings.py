@@ -1,7 +1,8 @@
+import os
 from datetime import timedelta
 from pathlib import Path
+
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
@@ -27,6 +28,8 @@ INSTALLED_APPS = [
     'rest_framework',
     # 'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -119,7 +122,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 SIMPLE_JWT = {
@@ -164,4 +168,40 @@ SIMPLE_JWT = {
     "TOKEN_BLACKLIST_SERIALIZER": "rest_framework_simplejwt.serializers.TokenBlacklistSerializer",
     "SLIDING_TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainSlidingSerializer",
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'FabriCraft Ecommerce API',
+    'DESCRIPTION': 'An advanced and comprehensive API for modern e-commerce solutions.',
+    'VERSION': '1.0.1',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "main_formatter": {
+            "format": "{asctime} - {levelname} - {module} :: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": "info.log",
+            "formatter": "main_formatter",
+        },
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "main_formatter",
+        },
+    },
+    "loggers": {
+        "main": {
+            "handlers": ["file", "console"],
+            "propagate": True,
+            "level": "INFO",
+        },
+    }
 }
