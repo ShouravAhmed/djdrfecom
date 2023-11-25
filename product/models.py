@@ -1,10 +1,10 @@
 import random
 
+from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.db import models
 
 from authentication.models import User
-from order.models import Store
 
 
 class ProductCategory(models.Model):
@@ -66,6 +66,23 @@ class ProductSizeChart(models.Model):
         ]
 
 
+class Store(models.Model):
+    store_manager = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True)
+    store_name = models.CharField(max_length=50)
+    contact_number = models.CharField(max_length=30)
+    second_contact_number = models.CharField(max_length=255)
+    address = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.store_name
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['store_name']),
+        ]
+
+
 class Product(models.Model):
     def generate_unique_product_id():
         return random.randint(100000, 999999)
@@ -73,12 +90,12 @@ class Product(models.Model):
     product_id = models.PositiveBigIntegerField(
         primary_key=True, unique=True, default=generate_unique_product_id)
     product_category = models.ForeignKey(
-        ProductCategory, on_delete=models.SET_NULL)
+        ProductCategory, on_delete=models.SET_NULL, null=True)
     product_description = models.ForeignKey(
-        ProductDescription, on_delete=models.SET_NULL)
+        ProductDescription, on_delete=models.SET_NULL, null=True)
     product_size_chart = models.ForeignKey(
-        ProductSizeChart, on_delete=models.SET_NULL)
-    store = models.ForeignKey(Store, on_delete=models.SET_NULL)
+        ProductSizeChart, on_delete=models.SET_NULL, null=True)
+    store = models.ForeignKey(Store, on_delete=models.SET_NULL, null=True)
 
     created_at = models.DateField(auto_now_add=True, editable=False)
     updated_at = models.DateField(auto_now=True, editable=False)

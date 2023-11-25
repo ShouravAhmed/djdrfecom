@@ -1,8 +1,8 @@
+from django.apps import apps
 from django.db import models
 
 from authentication.models import User
 from common.pathao import PathaoApi
-from common.utils import OrderIDGenerator
 from product.models import Product, Store
 
 from .enums import CourierOption, DeliveryType, ItemType, PaymentMethod
@@ -50,30 +50,14 @@ class Area(models.Model):
         ]
 
 
-class Store(models.Model):
-    store_manager = models.ForeignKey(User, on_delete=models.SET_NULL)
-    store_name = models.CharField(max_length=50)
-    contact_number = models.CharField(max_length=30)
-    second_contact_number = models.CharField(max_length=255)
-    address = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.store_name
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['store_name']),
-        ]
-
-
 class CourierStore(models.Model):
     store = models.ForeignKey(Store, on_delete=models.CASCADE)
     courier_choice = models.IntegerField(choices=CourierOption.choices)
     courier_store_id = models.IntegerField(primary_key=True, unique=True)
 
-    city = models.ForeignKey(City, on_delete=models.SET_NULL)
-    zone = models.ForeignKey(Zone, on_delete=models.SET_NULL)
-    area = models.ForeignKey(Area, on_delete=models.SET_NULL)
+    city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True)
+    zone = models.ForeignKey(Zone, on_delete=models.SET_NULL, null=True)
+    area = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True)
 
     class Meta:
         indexes = [
@@ -83,7 +67,7 @@ class CourierStore(models.Model):
 
 class Order(models.Model):
     order_id = models.CharField(primary_key=True, max_length=50)
-    customer = models.ForeignKey(User, on_delete=models.SET_NULL)
+    customer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     created_at = models.DateField(auto_now_add=True, editable=False)
     updated_at = models.DateField(auto_now=True, editable=False)
@@ -95,11 +79,15 @@ class Order(models.Model):
     note = models.CharField(max_length=255)
 
     courier_choice = models.IntegerField(choices=CourierOption.choices)
-    courier_store = models.ForeignKey(CourierStore, on_delete=models.SET_NULL)
+    courier_store = models.ForeignKey(
+        CourierStore, on_delete=models.SET_NULL, null=True)
 
-    customer_city = models.ForeignKey(City, on_delete=models.SET_NULL)
-    customer_zone = models.ForeignKey(Zone, on_delete=models.SET_NULL)
-    customer_area = models.ForeignKey(Area, on_delete=models.SET_NULL)
+    customer_city = models.ForeignKey(
+        City, on_delete=models.SET_NULL, null=True)
+    customer_zone = models.ForeignKey(
+        Zone, on_delete=models.SET_NULL, null=True)
+    customer_area = models.ForeignKey(
+        Area, on_delete=models.SET_NULL, null=True)
 
     products_value = models.DecimalField(max_digits=10, decimal_places=2)
     order_value = models.DecimalField(max_digits=10, decimal_places=2)
@@ -125,8 +113,8 @@ class Order(models.Model):
     delivery_cost = models.PositiveBigIntegerField(default=0)
     amount_to_collect = models.PositiveBigIntegerField(default=0)
 
-    delivery_consignment_id = models.CharField(255)
-    delivery_tracking_url = models.CharField(255)
+    delivery_consignment_id = models.CharField(max_length=255)
+    delivery_tracking_url = models.CharField(max_length=255)
 
     payment_method = models.IntegerField(
         choices=PaymentMethod.choices,
@@ -157,7 +145,7 @@ class Order(models.Model):
 
 class OrderedProduct(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.SET_NULL)
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     product_size = models.CharField(max_length=10)
     product_quantity = models.PositiveBigIntegerField(default=1)
 
@@ -181,7 +169,7 @@ class OrderNote(models.Model):
 
 
 class Review(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.SET_NULL)
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     rating = models.DecimalField(max_digits=3, decimal_places=2)
     description = models.TextField()

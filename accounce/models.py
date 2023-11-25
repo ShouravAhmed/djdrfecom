@@ -1,3 +1,4 @@
+from django.apps import apps
 from django.db import models
 
 from authentication.models import User
@@ -5,7 +6,8 @@ from authentication.models import User
 
 class Purchase(models.Model):
     created_at = models.DateField(auto_now_add=True, editable=False)
-    registered_by = models.ForeignKey(User, on_delete=models.SET_NULL)
+    registered_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True)
     title = models.CharField(max_length=155)
     description = models.TextField()
     purchase_cost = models.DecimalField(max_digits=10, decimal_places=2)
@@ -25,7 +27,8 @@ class PurchasePhoto(models.Model):
 
 class AccountBalance(models.Model):
     created_at = models.DateField(auto_now_add=True, editable=False)
-    registered_by = models.ForeignKey(User, on_delete=models.SET_NULL)
+    registered_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True)
     current_balance = models.DecimalField(max_digits=10, decimal_places=2)
     document_picture_url = models.CharField(max_length=255)
     is_approved = models.BooleanField()
@@ -39,10 +42,12 @@ class AccountBalanceApproval(models.Model):
 
 
 class Investment(models.Model):
-    registered_by = models.ForeignKey(User, on_delete=models.SET_NULL)
+    registered_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='registered_investments')
     created_at = models.DateField(auto_now_add=True, editable=False)
 
-    investor = models.ForeignKey(User, on_delete=models.SET_NULL)
+    investor = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='investments')
     invested_amount = models.DecimalField(max_digits=10, decimal_places=2)
     document_picture_url = models.CharField(max_length=255)
     is_approved = models.BooleanField()
@@ -62,11 +67,14 @@ class InvestorShare(models.Model):
 
 
 class Salary(models.Model):
-    registered_by = models.ForeignKey(User, on_delete=models.SET_NULL)
+    registered_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='registered_salaries')
     created_at = models.DateField(auto_now_add=True, editable=False)
 
-    employee = models.ForeignKey(User, on_delete=models.SET_NULL)
-    reporting_manager = models.ForeignKey(User, on_delete=models.SET_NULL)
+    employee = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='salaries')
+    reporting_manager = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True)
 
     designation = models.CharField(max_length=50)
     comment = models.TextField()
@@ -79,15 +87,17 @@ class Salary(models.Model):
 
 class SalaryApproval(models.Model):
     salary = models.ForeignKey(Salary, on_delete=models.CASCADE)
-    approver = models.ForeignKey(User, on_delete=models.SET_NULL)
+    approver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     is_approved = models.BooleanField()
 
 
 class InvestmentWithdraw(models.Model):
-    registered_by = models.ForeignKey(User, on_delete=models.SET_NULL)
+    registered_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='registered_investment_withdraws')
     created_at = models.DateField(auto_now_add=True, editable=False)
 
-    investor = models.ForeignKey(User, on_delete=models.CASCADE)
+    investor = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='investment_withdraws')
     withdraw_amount = models.PositiveIntegerField()
     document_picture_url = models.CharField(max_length=255)
     is_approved = models.BooleanField()
@@ -96,12 +106,13 @@ class InvestmentWithdraw(models.Model):
 class InvestmentWithdrawApproval(models.Model):
     investment_withdraw = models.ForeignKey(
         InvestmentWithdraw, on_delete=models.CASCADE)
-    approver = models.ForeignKey(User, on_delete=models.SET_NULL)
+    approver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     is_approved = models.BooleanField()
 
 
 class ProfitShare(models.Model):
-    registered_by = models.ForeignKey(User, on_delete=models.SET_NULL)
+    registered_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateField(auto_now_add=True, editable=False)
 
     title = models.CharField(max_length=155)
@@ -114,12 +125,13 @@ class ProfitShare(models.Model):
 
 class ProfitShareApproval(models.Model):
     profit_share = models.ForeignKey(ProfitShare, on_delete=models.CASCADE)
-    approver = models.ForeignKey(User, on_delete=models.SET_NULL)
+    approver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     is_approved = models.BooleanField()
 
 
 class ProfitShareRecived(models.Model):
-    profit_share = models.ForeignKey(ProfitShare, on_delete=models.SET_NULL)
+    profit_share = models.ForeignKey(
+        ProfitShare, on_delete=models.SET_NULL, null=True)
     created_at = models.DateField(auto_now_add=True, editable=False)
 
     title = models.CharField(max_length=155)
