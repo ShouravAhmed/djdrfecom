@@ -8,20 +8,20 @@ from .service_decorators import only_field_decorator
 logger = logging.getLogger('main')
 
 
-def get_object(model_name, objects, **kwargs):
-    logger.info(f"Get an Object from: {model_name}, if {kwargs}")
+def get_object(objects, **kwargs):
+    logger.info(f"Get an Object from: {kwargs['model_name']}, if {kwargs}")
     return objects.get(**kwargs)
 
 
 @only_field_decorator
-def filter_objects(model_name, objects, **kwargs):
-    logger.info(f"Get all Objects from: {model_name}, if {kwargs}")
+def filter_objects(objects, **kwargs):
+    logger.info(f"Get all Objects from: {kwargs['model_name']}, if {kwargs}")
     return objects.filter(**kwargs)
 
 
 @only_field_decorator
-def all_objects(model_name, objects, **kwargs):
-    logger.info(f"Get all Objects from: {model_name}")
+def all_objects(objects, **kwargs):
+    logger.info(f"Get all Objects from: {kwargs['model_name']}")
     return objects.all()
 
 

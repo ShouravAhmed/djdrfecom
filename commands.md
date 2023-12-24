@@ -11,6 +11,7 @@ drf-yasg==1.21.7
 python-dotenv==1.0.0
 redis==5.0.1
 requests==2.31.0
+django-ratelimit==4.1.0
 
 # commands
 
@@ -36,6 +37,8 @@ python manage.py createsuperuser
 pip freeze > requirements.txt
 
 ./manage.py spectacular --file schema.yml
+
+pip install autopep8 pylint pylint-django
 
 # Git & Github
 

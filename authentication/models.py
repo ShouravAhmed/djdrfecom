@@ -21,6 +21,7 @@ class User(AbstractUser):
 
     created_at = models.DateField(auto_now_add=True, editable=False)
     updated_at = models.DateField(auto_now=True, editable=False)
+    is_varified = models.BooleanField(default=False)
 
     username = models.CharField(max_length=30, null=True, blank=True)
 

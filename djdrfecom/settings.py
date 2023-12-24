@@ -115,13 +115,11 @@ CACHES = {
     }
 }
 
+RATELIMIT_USE_CACHE = 'default'
 
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:8080",
-#     "http://127.0.0.1:9000",
-# ]
-CORS_ALLOW_ALL_ORIGINS = True
-
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -131,11 +129,11 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    # "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=7),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=180),
-    "ROTATE_REFRESH_TOKENS": True,
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=11),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=357),
+    # "ROTATE_REFRESH_TOKENS": True,
     # "BLACKLIST_AFTER_ROTATION": True,
+    "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": False,
 

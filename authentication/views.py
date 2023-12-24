@@ -7,7 +7,11 @@ from .helper import send_login_otp
 from .models import User
 from .serializers import UserSerializer
 
+from django_ratelimit.decorators import ratelimit
 
+
+@ratelimit(key='user_or_ip', rate='5/d')
+@ratelimit(key='user_or_ip', rate='1/m')
 @api_view(['POST'])
 def send_otp(request):
     try:
@@ -21,7 +25,6 @@ def send_otp(request):
         user, created = User.objects.get_or_create(phone_number=phone_number)
 
         data = send_login_otp(phone_number)
-
         return Response(
             data,
             status=status.HTTP_200_OK
@@ -31,7 +34,7 @@ def send_otp(request):
         print(e)
         return Response({"data": "exception occered", }, status=status.HTTP_404_NOT_FOUND)
 
-
+@ratelimit(key='user_or_ip', rate='20/m')
 @api_view(['GET'])
 @permission_classes((IsAuthenticated,))
 def get_user(request):
@@ -48,12 +51,13 @@ def get_user(request):
     return Response(resp, status=status.HTTP_200_OK)
 
 
+@ratelimit(key='user_or_ip', rate='10/m')
 @api_view(['POST'])
 @permission_classes((IsAuthenticated,))
 def update_user(request):
     resp = {'status': 200, 'message': 'success'}
     try:
-        phone_number = request.data.get('phone_number')
+        phone_number = request.user.phone_number
         full_name = request.data.get('full_name')
         email = request.data.get('email')
         address = request.data.get('address')

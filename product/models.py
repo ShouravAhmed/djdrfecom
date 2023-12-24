@@ -12,10 +12,11 @@ class ProductCategory(models.Model):
     description = models.TextField(null=True, blank=True)
     cover_picture = models.CharField(max_length=255)
     profile_picture = models.CharField(max_length=255)
+    show_in_home_page = models.BooleanField(default=True)
 
     class Meta:
         indexes = [
-            models.Index(fields=['title']),
+            models.Index(fields=['id']),
         ]
 
     def __str__(self):
@@ -41,7 +42,7 @@ class ProductDescription(models.Model):
         ]
         indexes = [
             models.Index(fields=['product_category']),
-            models.Index(fields=['title']),
+            models.Index(fields=['id']),
         ]
 
 
@@ -63,6 +64,7 @@ class ProductSizeChart(models.Model):
         ]
         indexes = [
             models.Index(fields=['product_category']),
+            models.Index(fields=['id']),
         ]
 
 
@@ -79,7 +81,7 @@ class Store(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['store_name']),
+            models.Index(fields=['id']),
         ]
 
 
@@ -101,8 +103,9 @@ class Product(models.Model):
     updated_at = models.DateField(auto_now=True, editable=False)
 
     product_name = models.CharField(max_length=100)
-    product_value = models.DecimalField(max_digits=10, decimal_places=2)
-    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    product_buy_price = models.DecimalField(max_digits=10, decimal_places=2)
+    product_sell_price = models.DecimalField(max_digits=10, decimal_places=2)
+    product_discount = models.DecimalField(max_digits=5, decimal_places=2)
 
     sale_count = models.IntegerField(default=0)
     visit_count = models.IntegerField(default=0)

@@ -25,7 +25,7 @@ class LoginSerializer(TokenObtainPairSerializer):
 
     phone_number = serializers.CharField(write_only=True)
     otp = serializers.CharField(write_only=True)
-
+    
     def validate(self, attrs):
         phone_number = attrs.get('phone_number', None)
         otp = attrs.get('otp', None)

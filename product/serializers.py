@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from .models import (CartProduct, Product, ProductCategory, ProductDescription,
-                     ProductPhoto, ProductSizeChart, ProductTag, Tag,
+                     ProductPhoto, ProductSizeChart, ProductTag, Store, Tag,
                      WishListProduct)
 
 
@@ -23,6 +23,12 @@ class ProductSizeChartSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class StoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Store
+        fields = ['id', 'store_name', 'contact_number', 'address']
+
+
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
@@ -32,7 +38,7 @@ class TagSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = "__all__"
+        exclude = ['product_buy_price']
 
 
 class ProductPhotoSerializer(serializers.ModelSerializer):
