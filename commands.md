@@ -42,28 +42,18 @@ pip install autopep8 pylint pylint-django
 
 # Git & Github
 
-*create a new repository*
-```
-echo "# DJEcom" >> README.md
-git init
-git add README.md
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/ShouravAhmed/DJEcom.git
-git push -u origin main
-```
-
-*push an existing repository*
-```
-git remote add origin https://github.com/ShouravAhmed/DJEcom.git
-git branch -M main
-git push -u origin main
-```
-
-*default branch name change*
-```
-git branch -m main dev
+git add .
+git commit -m 'product-app final revision'
+git push origin dev-1.0.1
+git branch -m dev dev-1.0.1
 git fetch origin
-git branch -u origin/dev dev
+git branch -u dev-1.0.1 dev-1.0.1
 git remote set-head origin -a
-```
+git fetch
+git branch -r
+git checkout -b main origin/main
+git pull
+git branch dev-1.0.2
+git checkout dev-1.0.2
+git push -u origin dev-1.0.2
+git fetch origin

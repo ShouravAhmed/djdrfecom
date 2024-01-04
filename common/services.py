@@ -25,6 +25,11 @@ def all_objects(objects, **kwargs):
     return objects.all()
 
 
+def delete_objects(objects, **kwargs):
+    logger.info(f"Delete all Objects from: {kwargs['model_name']}")
+    objects.delete()
+
+
 # def create_product(title: str):
 #     all_products = all_objects(Product.objects)
 #     filtered_produts = filter_objects(

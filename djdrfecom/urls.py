@@ -3,7 +3,7 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('fabricraft-super-admin/', admin.site.urls),
     path('api/auth/', include('authentication.urls')),
     path('api/product/', include('product.urls')),
 

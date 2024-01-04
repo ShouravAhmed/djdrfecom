@@ -1,5 +1,7 @@
+import datetime
 import random
 
+import blurhash
 from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -87,7 +89,10 @@ class Store(models.Model):
 
 class Product(models.Model):
     def generate_unique_product_id():
-        return random.randint(100000, 999999)
+        current_year = str(datetime.now().year)[-2:]
+        current_month = str(datetime.now().month).zfill(2)
+        random_number = str(random.randint(1000, 9999))
+        return f"{current_year}-{current_month}-{random_number}"
 
     product_id = models.PositiveBigIntegerField(
         primary_key=True, unique=True, default=generate_unique_product_id)
@@ -112,6 +117,7 @@ class Product(models.Model):
     wishlist_count = models.IntegerField(default=0)
 
     quantity_in_stock = models.JSONField()
+    is_archived = models.BooleanField(default=False)
     video_url = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
@@ -134,6 +140,13 @@ class Product(models.Model):
 class ProductPhoto(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     photo_url = models.CharField(max_length=255)
+    photo_blurhash = models.CharField(max_length=100, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        with self.photo_url.open() as image_file:
+            self.photo_blurhash = blurhash.encode(
+                image_file, x_components=4, y_components=4)
+        super().save(*args, **kwargs)
 
     class Meta:
         indexes = [
