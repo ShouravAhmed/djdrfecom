@@ -15,6 +15,7 @@ class ProductCategory(models.Model):
     cover_picture = models.CharField(max_length=255)
     profile_picture = models.CharField(max_length=255)
     show_in_home_page = models.BooleanField(default=True)
+    category_order = models.IntegerField(default=0)
 
     class Meta:
         indexes = [
