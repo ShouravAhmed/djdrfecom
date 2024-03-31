@@ -1,8 +1,11 @@
+import logging
 import random
 from datetime import datetime, timedelta
 
 from django.core.cache import cache
 from rest_framework import status
+
+logger = logging.getLogger('main')
 
 
 def is_correct_phone_number(phone_no):
@@ -26,7 +29,7 @@ def is_correct_phone_number(phone_no):
 
 
 def sms_otp(otp):
-    print("\n\nSMS OTP:", otp, "\n\n")
+    logger.info(f"SMS OTP: {otp}")
 
 
 def send_login_otp(phone_number):
@@ -53,7 +56,7 @@ def send_login_otp(phone_number):
             if otp_req_timeout <= 60:
                 timeout_str = f'{int(otp_req_timeout)} Minute {int((otp_req_timeout - int(otp_req_timeout)) * 60)} Seconds'
 
-        return {'message': f'An OTP has already been sent to {phone_number}.\nCan\'t resend OTP before {timeout_str}.', 'status': 'OK', 'count' : otp_req_cnt}
+        return {'message': f'An OTP has already been sent to {phone_number}.\nCan\'t resend OTP before {timeout_str}.', 'status': 'OK', 'count': otp_req_cnt}
 
     cache.set(otp_cache_key, otp, None)
     cache.expire_at(otp_cache_key, datetime.now() + timedelta(days=30))

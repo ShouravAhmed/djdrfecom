@@ -1,4 +1,7 @@
 
+import re
+
+
 def is_valid_password(new_password, confirm_new_password):
     if new_password != confirm_new_password:
         return False
@@ -12,3 +15,9 @@ def is_valid_password(new_password, confirm_new_password):
         return False
 
     return True
+
+
+def get_slug(text):
+    return ' '.join(
+        re.sub(r'[^a-z0-9 ]+', '', text.lower()).split()
+    ).replace(' ', '-')

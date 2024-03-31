@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from .models import (CartProduct, Product, ProductCategory, ProductDescription,
-                     ProductPhoto, ProductSizeChart, ProductTag, Store, Tag,
+                     ProductImage, ProductSizeChart, ProductTag, Store, Tag,
                      WishListProduct)
 
 
@@ -12,12 +12,16 @@ class ProductCategorySerializer(serializers.ModelSerializer):
 
 
 class ProductDescriptionSerializer(serializers.ModelSerializer):
+    product_category = ProductCategorySerializer
+
     class Meta:
         model = ProductDescription
         fields = "__all__"
 
 
 class ProductSizeChartSerializer(serializers.ModelSerializer):
+    product_category = ProductCategorySerializer
+
     class Meta:
         model = ProductSizeChart
         fields = "__all__"
@@ -36,18 +40,41 @@ class TagSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    product_category = ProductCategorySerializer()
+    product_description = ProductDescriptionSerializer()
+    product_size_chart = ProductSizeChartSerializer()
+    store = StoreSerializer()
+
     class Meta:
         model = Product
-        exclude = ['product_buy_price']
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super(ProductSerializer, self).__init__(*args, **kwargs)
+
+        # Check if the user is an admin
+        is_admin = self.context['request'].user.is_staff if 'request' in self.context else False
+
+        # Conditionally include or exclude the 'product_base_price' field
+        if not is_admin:
+            self.fields.pop('product_base_price')
 
 
-class ProductPhotoSerializer(serializers.ModelSerializer):
+class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ProductPhoto
+        model = ProductImage
+        fields = "__all__"
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
         fields = "__all__"
 
 
 class ProductTagSerializer(serializers.ModelSerializer):
+    tag = TagSerializer()
+
     class Meta:
         model = ProductTag
         fields = "__all__"

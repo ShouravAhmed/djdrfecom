@@ -13,7 +13,7 @@ from .models import User
 from .serializers import UserSerializer
 
 
-@ratelimit(key='user_or_ip', rate='5/d')
+@ratelimit(key='user_or_ip', rate='10/d')
 @ratelimit(key='user_or_ip', rate='1/m')
 @api_view(['POST'])
 def send_otp(request):
@@ -34,7 +34,6 @@ def send_otp(request):
         )
 
     except Exception as e:
-        print(e)
         return Response({"data": "exception occered", }, status=status.HTTP_404_NOT_FOUND)
 
 

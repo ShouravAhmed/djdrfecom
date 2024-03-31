@@ -1,3 +1,4 @@
+import blurhash
 from django.apps import apps
 from django.db import models
 
@@ -8,8 +9,15 @@ from .enums import OfferType
 
 class Banner(models.Model):
     title = models.CharField(max_length=100, unique=True)
-    photo_url = models.CharField(max_length=255)
+    image = models.ImageField(null=True, blank=True)
+    image_blurhash = models.CharField(max_length=100, blank=True, null=True)
     redirect_url = models.CharField(max_length=255)
+    banner_order = models.IntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        self.image_blurhash = blurhash.encode(
+            self.image.open(), x_components=6, y_components=3)
+        super().save(*args, **kwargs)
 
     class Meta:
         indexes = [
@@ -22,7 +30,9 @@ class Offer(models.Model):
     title = models.CharField(max_length=100)
     description = models.TextField()
 
-    cover_picture_url = models.CharField(max_length=255)
+    cover_image = models.ImageField(null=True, blank=True)
+    cover_image_blurhash = models.CharField(
+        max_length=100, blank=True, null=True)
     redirect_url = models.CharField(max_length=255)
 
     sms_notify = models.BooleanField()
@@ -36,6 +46,11 @@ class Offer(models.Model):
 
     minimum_purchase = models.IntegerField()
     DiscountPercentage = models.IntegerField()
+
+    def save(self, *args, **kwargs):
+        self.cover_image_blurhash = blurhash.encode(
+            self.cover_image.open(), x_components=6, y_components=3)
+        super().save(*args, **kwargs)
 
     class Meta:
         indexes = [
@@ -61,7 +76,9 @@ class Notification(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
 
-    cover_picture_url = models.CharField(max_length=255)
+    cover_image = models.ImageField(null=True, blank=True)
+    cover_image_blurhash = models.CharField(
+        max_length=100, blank=True, null=True)
     redirect_url = models.CharField(max_length=255)
 
     sms_notify = models.BooleanField()
@@ -72,6 +89,11 @@ class Notification(models.Model):
     sms_frequency_day = models.IntegerField()
 
     expire_on = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        self.cover_image_blurhash = blurhash.encode(
+            self.cover_image.open(), x_components=6, y_components=3)
+        super().save(*args, **kwargs)
 
     class Meta:
         indexes = [
