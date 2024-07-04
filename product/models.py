@@ -280,16 +280,15 @@ class ProductTag(models.Model):
 class CartProduct(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    size = models.CharField(max_length=30, default="default")
+    count = models.IntegerField(default=1)
     created_at = models.DateField(auto_now_add=True, editable=False)
+    updated_at = models.DateField(auto_now=True, editable=False)
 
     class Meta:
-        indexes = [
-            models.Index(fields=['product']),
-            models.Index(fields=['user']),
-        ]
         constraints = [
             models.UniqueConstraint(
-                fields=['product', 'user'],
+                fields=['product', 'user', 'size'],
                 name='unique_cart'
             ),
         ]

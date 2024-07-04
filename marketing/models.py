@@ -4,7 +4,7 @@ from django.db import models
 
 from product.models import Product
 
-from .enums import OfferType
+from .enums import DiscountType, OfferType
 
 
 class Banner(models.Model):
@@ -41,16 +41,25 @@ class Offer(models.Model):
 
     notification_frequency_day = models.IntegerField()
     sms_frequency_day = models.IntegerField()
-    duration_day = models.IntegerField()
-    promo_code = models.CharField(max_length=50)
+    promo_code = models.CharField(max_length=50, null=True, blank=True)
 
-    minimum_purchase = models.IntegerField()
-    DiscountPercentage = models.IntegerField()
+    duration_day = models.DateTimeField()
+    minimum_purchase = models.IntegerField(default=0)
+
+    discount_type = models.IntegerField(choices=DiscountType.choices)
+    discount_value = models.IntegerField(default=0)
 
     def save(self, *args, **kwargs):
-        self.cover_image_blurhash = blurhash.encode(
-            self.cover_image.open(), x_components=6, y_components=3)
+        try:
+            self.cover_image_blurhash = blurhash.encode(
+                self.cover_image.open(), x_components=6, y_components=3)
+        except Exception as e:
+            print("Offer Model Save Exception:", e)
+
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
 
     class Meta:
         indexes = [

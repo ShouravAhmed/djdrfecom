@@ -160,6 +160,7 @@ class OrderNote(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     title = models.CharField(max_length=150)
     description = models.TextField()
+    created_at = models.DateField(auto_now_add=True, editable=False)
 
     class Meta:
         indexes = [
@@ -174,6 +175,7 @@ class Review(models.Model):
     rating = models.DecimalField(max_digits=3, decimal_places=2)
     description = models.TextField()
     is_approved = models.BooleanField()
+    created_at = models.DateField(auto_now_add=True, editable=False)
 
     class Meta:
         indexes = [

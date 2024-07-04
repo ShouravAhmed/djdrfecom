@@ -81,12 +81,16 @@ class ProductTagSerializer(serializers.ModelSerializer):
 
 
 class CartProductSerializer(serializers.ModelSerializer):
+    product = ProductSerializer()
+
     class Meta:
         model = CartProduct
         fields = "__all__"
 
 
 class WishListProductSerializer(serializers.ModelSerializer):
+    product = ProductSerializer()
+
     class Meta:
         model = WishListProduct
         fields = "__all__"

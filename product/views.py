@@ -6,12 +6,14 @@ from django.db.models import F, Func, Sum, Value
 from django.forms.models import model_to_dict
 from django.shortcuts import render
 from django.utils.translation import gettext as _
+from django_ratelimit.decorators import ratelimit
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
+from authentication.models import User
 from common.services import (all_objects, delete_objects, filter_objects,
                              get_object)
 
@@ -28,6 +30,7 @@ from .utils import ProductCategoryCache
 logger = logging.getLogger('main')
 
 
+@ratelimit(key='user_or_ip', rate='60/m')
 @api_view(['GET'])
 def homepage_products(request):
     categories = ProductCategory.objects.filter(show_in_home_page=True)
@@ -52,21 +55,31 @@ def homepage_products(request):
     return Response(data, status=status.HTTP_200_OK)
 
 
+@ratelimit(key='user_or_ip', rate='60/m')
 @api_view(['GET'])
 def search_products(request):
-    search_name = request.query_params.get('search', '')
-    print("\n\nsearching:", search_name)
+    search_text = request.query_params.get('search', '').strip()
+    print("\n\nsearching:", search_text)
 
-    if len(search_name) == 0:
+    if not search_text:
         return Response({}, status=status.HTTP_200_OK)
 
-    products = filter_objects(
-        Product.objects.all(),
-        fields={'product_name__icontains': search_name},
-        model_name='Product'
+    # Filter products by product name containing search text
+    products_by_name = Product.objects.filter(
+        product_name__icontains=search_text)
+
+    # Filter products by tags containing search text
+    products_by_tag = Product.objects.filter(
+        producttag__tag__name__icontains=search_text)
+
+    products_by_category = Product.objects.filter(
+        product_category__title__icontains=search_text
     )
 
-    serializer = ProductSerializer(products, many=True)
+    # Combine both querysets using OR operator (|)
+    products = products_by_name | products_by_tag | products_by_category
+
+    serializer = ProductSerializer(products.distinct(), many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -374,6 +387,7 @@ class StoreViewSet(viewsets.ViewSet):
                            model_name="Store")
 
     @extend_schema(responses=StoreSerializer)
+    @permission_classes([permissions.IsAuthenticated, permissions.IsAdminUser])
     def list(self, request):
         serializer = StoreSerializer(self.queryset, many=True)
         return Response(serializer.data)
@@ -460,20 +474,20 @@ class ProductViewSet(viewsets.ViewSet):
     )
     def list_product_by_category(self, request, category=None):
         """
-        An endpoint to return products by category
+        An endpoint to return products by category `slug`
         """
         serializer = ProductSerializer(
             filter_objects(
                 all_objects(Product.objects, model_name="Product"),
                 context={'request': request},
                 fields={
-                    'product_category': category,
+                    'product_category__slug': category,
                 },
                 model_name='Product'
             ),
             many=True
         )
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(responses=ProductSerializer)
     @permission_classes([permissions.IsAuthenticated, permissions.IsAdminUser])
@@ -586,6 +600,30 @@ class ProductViewSet(viewsets.ViewSet):
             all_objects(Product.objects, model_name="Product"),
             context={'request': request},
             many=True
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(responses=ProductSerializer)
+    @action(
+        methods=['get'],
+        detail=False,
+        url_path=r"(?P<product_id>[^/]+)",
+        url_name="product_by_id"
+    )
+    def product_by_id(self, request, product_id=None):
+        """
+        An endpoint to return single product by `product_id`
+        """
+        serializer = ProductSerializer(
+            get_object(
+                all_objects(Product.objects, model_name="Product"),
+                context={'request': request},
+                fields={
+                    'product_id': product_id,
+                },
+                model_name='Product'
+            ),
+            many=False
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -806,59 +844,126 @@ class CartProductViewSet(viewsets.ViewSet):
     """
     Viewset for CartProduct
     """
-    queryset = all_objects(CartProduct.objects, model_name="CartProduct")
+    queryset = all_objects(CartProduct.objects,
+                           model_name="CartProduct")
 
     @extend_schema(responses=CartProductSerializer)
     @permission_classes([permissions.IsAuthenticated])
     def list(self, request):
         """
-        An endpoint to retrieve items in the user's Cart
+        An endpoint to retrieve items in the user's cart
         """
         cart_products = filter_objects(
-            self.queryset,
+            CartProduct.objects,
             fields={
                 'user': request.user,
             },
             model_name='CartProduct'
         )
-        serializer = CartProductSerializer(cart_products, many=True)
-        return Response(serializer.data)
+        serializer = CartProductSerializer(
+            cart_products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(responses=CartProductSerializer)
+    @permission_classes([permissions.IsAuthenticated])
+    @action(
+        methods=['get'],
+        detail=False,
+        url_path=r"update/(?P<product_id>[^/]+)/(?P<size>[^/]+)/(?P<count>[^/]+)",
+        url_name="update_cart_product"
+    )
+    def update_cart_product(self, request, product_id, size, count):
+        """
+        An endpoint to update items in the user's cart
+        """
+        try:
+            product = get_object(
+                Product.objects,
+                fields={
+                    'product_id': product_id,
+                },
+                model_name='Product'
+            )
+            cart_item, created = CartProduct.objects.get_or_create(
+                user=request.user, product=product, size=size)
+            cart_item.count = int(count)
+            cart_item.save()
+
+        except Exception as e:
+            print("\nexception:", e)
+
+        return Response({'status': 'OK'}, status=status.HTTP_200_OK)
+
+    @extend_schema(responses=CartProductSerializer)
+    @permission_classes([permissions.IsAuthenticated])
+    @action(
+        methods=['get'],
+        detail=False,
+        url_path=r"delete/(?P<product_id>[^/]+)/(?P<size>[^/]+)",
+        url_name="delete_cart_product"
+    )
+    def delete_cart_product(self, request, product_id, size):
+        """
+        An endpoint to delete item from the user's cart
+        """
+        product = get_object(
+            Product.objects,
+            fields={
+                'product_id': product_id,
+            },
+            model_name='Product'
+        )
+        cart_product = get_object(
+            CartProduct.objects,
+            fields={
+                'product': product,
+                'user': request.user,
+                'size': size,
+            },
+            model_name='CartProduct'
+        )
+        cart_product.delete()
+
+        return Response({'status': 'OK'}, status=status.HTTP_200_OK)
 
     @extend_schema(responses=CartProductSerializer)
     @permission_classes([permissions.IsAuthenticated])
     @action(
         methods=['post'],
         detail=False,
-        url_path=r"update",
-        url_name="update_cart"
+        url_path="batch-add",
+        url_name="batch_add_to_cart"
     )
-    def update_cart(self, request):
+    def batch_add_to_cart(self, request):
         """
-        An endpoint to update items in the user's Cart
+        An endpoint to batch add items in the user's cart : recive a list of (product_id, size, count) by `cart` key.
         """
-        cart_products = filter_objects(
-            self.queryset,
-            fields={
-                'user': request.user,
-            },
-            model_name='CartProduct'
-        )
-        delete_objects(cart_products, model_name="CartProduct")
+        cart_item_list = request.data.get('cart', [])
+        print("\ncart_item_list:", cart_item_list)
 
-        products_data = request.data.get('products', [])
-        response_data = []
+        cnt = 0
+        for item in cart_item_list:
+            try:
+                product = get_object(
+                    Product.objects,
+                    fields={
+                        'product_id': item['product']['product_id'],
+                    },
+                    model_name='Product'
+                )
+                cart_item, created = CartProduct.objects.get_or_create(
+                    user=request.user, product=product, size=item['size'])
+                cart_item.count = int(item['count'])
+                cart_item.save()
+                if created:
+                    cnt += 1
+            except Exception as e:
+                print("Exception:", e)
 
-        for product_data in products_data:
-            data = {
-                'product': product_data.product_id,
-                'user': request.user.id
-            }
-            serializer = CartProductSerializer(data=data)
-            if serializer.is_valid():
-                serializer.save()
-                response_data.append(serializer.data)
-
-        return Response(response_data, status=status.HTTP_201_CREATED)
+        if cnt > 0:
+            return Response({'status': 'OK', 'created': cnt}, status=status.HTTP_200_OK)
+        else:
+            return Response({'status': 'FAILED', }, status=status.HTTP_204_NO_CONTENT)
 
 
 class WishListProductViewSet(viewsets.ViewSet):
@@ -875,47 +980,91 @@ class WishListProductViewSet(viewsets.ViewSet):
         An endpoint to retrieve items in the user's wishlist
         """
         wishlist_products = filter_objects(
-            self.queryset,
+            WishListProduct.objects,
             fields={
                 'user': request.user,
             },
             model_name='WishListProduct'
         )
-        serializer = WishListProductSerializer(wishlist_products, many=True)
-        return Response(serializer.data)
+        serializer = WishListProductSerializer(
+            wishlist_products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(responses=WishListProductSerializer)
+    @permission_classes([permissions.IsAuthenticated])
+    @action(
+        methods=['get'],
+        detail=False,
+        url_path=r"add/(?P<product_id>[^/]+)",
+        url_name="add_wishlist_product"
+    )
+    def add_wishlist_product(self, request, product_id):
+        """
+        An endpoint to add items in the user's wishlist
+        """
+        try:
+            WishListProduct.objects.create(
+                user=request.user, product__product_id=product_id)
+
+        except Exception as e:
+            print("\nexception:", e)
+
+        return Response({'status': 'OK'}, status=status.HTTP_200_OK)
+
+    @extend_schema(responses=WishListProductSerializer)
+    @permission_classes([permissions.IsAuthenticated])
+    @action(
+        methods=['get'],
+        detail=False,
+        url_path=r"delete/(?P<product_id>[^/]+)",
+        url_name="delete_wishlist_product"
+    )
+    def delete_wishlist_product(self, request, product_id):
+        """
+        An endpoint to delete item from the user's wishlist
+        """
+        wishlist_product = get_object(
+            WishListProduct.objects,
+            fields={
+                'product__product_id': product_id,
+                'user': request.user
+            },
+            model_name='WishListProduct'
+        )
+        wishlist_product.delete()
+
+        return Response({'status': 'OK'}, status=status.HTTP_200_OK)
 
     @extend_schema(responses=WishListProductSerializer)
     @permission_classes([permissions.IsAuthenticated])
     @action(
         methods=['post'],
         detail=False,
-        url_path=r"update",
-        url_name="update_wishlist"
+        url_path="batch-add",
+        url_name="batch_add_to_wishlist"
     )
-    def update_wishlist(self, request):
+    def batch_add_to_wishlist(self, request):
         """
-        An endpoint to update items in the user's wishlist
+        An endpoint to batch add items in the user's wishlist : recive a list of product_id with `wishlist` key.
         """
-        wishlist_products = filter_objects(
-            self.queryset,
-            fields={
-                'user': request.user,
-            },
-            model_name='WishListProduct'
-        )
-        delete_objects(wishlist_products, model_name="WishListProduct")
+        products_list = request.data.get('wishlist', [])
+        print("\nproducts_list:", products_list)
 
-        products_data = request.data.get('products', [])
-        response_data = []
+        cnt = 0
+        for product_id in products_list:
+            try:
+                product = Product.objects.get(product_id=product_id)
+                wishlist_item, created = WishListProduct.objects.get_or_create(
+                    user=request.user, product=product)
+                if created:
+                    cnt += 1
+            except Product.DoesNotExist:
+                print(
+                    f"Product with product_id '{product_id}' does not exist.")
+            except Exception as e:
+                print("Exception:", e)
 
-        for product_data in products_data:
-            data = {
-                'product': product_data.product_id,
-                'user': request.user.id
-            }
-            serializer = WishListProductSerializer(data=data)
-            if serializer.is_valid():
-                serializer.save()
-                response_data.append(serializer.data)
-
-        return Response(response_data, status=status.HTTP_201_CREATED)
+        if cnt > 0:
+            return Response({'status': 'OK', 'created': cnt}, status=status.HTTP_200_OK)
+        else:
+            return Response({'status': 'FAILED', }, status=status.HTTP_204_NO_CONTENT)
