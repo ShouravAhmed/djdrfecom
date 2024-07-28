@@ -965,6 +965,51 @@ class CartProductViewSet(viewsets.ViewSet):
         else:
             return Response({'status': 'FAILED', }, status=status.HTTP_204_NO_CONTENT)
 
+    @extend_schema(responses=CartProductSerializer)
+    @permission_classes([permissions.IsAuthenticated])
+    @action(
+        methods=['get'],
+        detail=False,
+        url_path="revalidate",
+        url_name="revalidate_cart"
+    )
+    def revalidate_cart(self, request):
+        """
+        An endpoint to revalidate the user's cart according to stock
+        """
+
+        cart_items = filter_objects(
+            CartProduct.objects,
+            fields={
+                'user': request.user,
+            },
+            model_name='CartProduct'
+        )
+
+        is_updated = False
+        is_deleted = False
+
+        for item in cart_items:
+            current_stock = int(item.product.product_stock.get(item.size, 0))
+
+            logger.info(
+                f"in cart: {item.count} | current_stock: {current_stock}")
+
+            if item.count > current_stock:
+                item.count = current_stock
+                item.save()
+                is_updated = True
+
+            if item.count == 0:
+                product = Product.objects.get(
+                    product_id=item.product.product_id)
+                wishlist_item, created = WishListProduct.objects.get_or_create(
+                    user=request.user, product=product)
+                item.delete()
+                is_deleted = True
+
+        return Response({'is_updated': is_updated, 'is_deleted': is_deleted}, status=status.HTTP_200_OK)
+
 
 class WishListProductViewSet(viewsets.ViewSet):
     """
