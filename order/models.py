@@ -1,3 +1,8 @@
+import datetime
+import logging
+import random
+import string
+
 from django.apps import apps
 from django.db import models
 
@@ -5,8 +10,10 @@ from authentication.models import User
 from common.pathao import PathaoApi
 from product.models import Product, Store
 
-from .enums import CourierOption, DeliveryType, ItemType, PaymentMethod
-from .manager import OrderManager
+from .enums import (CourierOption, DeliveryType, ItemType, OrderStatus,
+                    PaymentMethod, PaymentStatus)
+
+logger = logging.getLogger('main')
 
 
 class City(models.Model):
@@ -67,39 +74,31 @@ class CourierStore(models.Model):
 
 class Order(models.Model):
     order_id = models.CharField(primary_key=True, max_length=50)
+
     customer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-
-    created_at = models.DateField(auto_now_add=True, editable=False)
-    updated_at = models.DateField(auto_now=True, editable=False)
-
     customer_name = models.CharField(max_length=50)
     customer_phone = models.CharField(max_length=20)
     customer_email = models.EmailField(null=True, blank=True)
     customer_address = models.CharField(max_length=255)
-    note = models.CharField(max_length=255)
+    customer_note = models.CharField(max_length=255, null=True, blank=True)
 
-    courier_choice = models.IntegerField(choices=CourierOption.choices)
+    courier_choice = models.IntegerField(
+        choices=CourierOption.choices, default=CourierOption.PATHAO)
     courier_store = models.ForeignKey(
-        CourierStore, on_delete=models.SET_NULL, null=True)
+        CourierStore, on_delete=models.SET_NULL, null=True, blank=True)
 
     customer_city = models.ForeignKey(
-        City, on_delete=models.SET_NULL, null=True)
+        City, on_delete=models.SET_NULL, null=True, blank=True)
     customer_zone = models.ForeignKey(
-        Zone, on_delete=models.SET_NULL, null=True)
+        Zone, on_delete=models.SET_NULL, null=True, blank=True)
     customer_area = models.ForeignKey(
-        Area, on_delete=models.SET_NULL, null=True)
+        Area, on_delete=models.SET_NULL, null=True, blank=True)
 
-    products_value = models.DecimalField(max_digits=10, decimal_places=2)
-    order_value = models.DecimalField(max_digits=10, decimal_places=2)
-
-    item_quantity = models.PositiveBigIntegerField(default=1)
+    item_quantity = models.IntegerField(default=1)
     item_weight = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=0.50
-    )
-    item_description = models.TextField()
-    delivery_instruction = models.TextField()
+        max_digits=10, decimal_places=2, default=0.50)
+    item_description = models.TextField(null=True, blank=True)
+    delivery_instruction = models.TextField(null=True, blank=True)
 
     delivery_type = models.IntegerField(
         choices=DeliveryType.choices,
@@ -110,28 +109,61 @@ class Order(models.Model):
         default=ItemType.PARCEL
     )
 
-    delivery_cost = models.PositiveBigIntegerField(default=0)
-    amount_to_collect = models.PositiveBigIntegerField(default=0)
+    products_base_value = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00)
+    products_regular_value = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00)
+    products_discount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00)
+    flat_discount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00)
+    additional_discount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00)
+    customers_delivery_charge = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00)
 
-    delivery_consignment_id = models.CharField(max_length=255)
-    delivery_tracking_url = models.CharField(max_length=255)
+    amount_to_collect = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00)
+    delivery_cost = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00)
+    order_profit = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00)
+
+    delivery_consignment_id = models.CharField(
+        max_length=255, null=True, blank=True)
+    delivery_tracking_url = models.CharField(
+        max_length=255, null=True, blank=True)
 
     payment_method = models.IntegerField(
         choices=PaymentMethod.choices,
         default=PaymentMethod.CASH_ON_DELIVERY
     )
 
-    order_status = models.CharField(max_length=50)
-    payment_status = models.BooleanField()
-    profit = models.DecimalField(max_digits=3, decimal_places=2)
+    order_status = models.IntegerField(
+        choices=OrderStatus.choices,
+        default=OrderStatus.PROCESSING
+    )
+    payment_status = models.IntegerField(
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.PENDING
+    )
 
-    objects = OrderManager()
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
+
+    @staticmethod
+    def generate_order_id(user_phone):
+        company_prefix = 'F'
+        date_prefix = datetime.datetime.now().strftime('%Y%m%d')
+        random_chars = ''.join(random.choices(
+            string.ascii_uppercase + string.digits, k=4)
+        )
+        return f"{company_prefix}{date_prefix}-{random_chars}-{user_phone[-4:]}"
 
     def save(self, *args, **kwargs):
-        if self.order_id is None:
-            self.order_id = self.objects.generate_order_id(
-                self.customer.phone_number[-4:]
-            )
+        if not self.order_id:
+            self.order_id = self.generate_order_id(
+                self.customer.phone_number[-4:])
         super().save(*args, **kwargs)
 
     class Meta:
@@ -147,7 +179,8 @@ class OrderedProduct(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     product_size = models.CharField(max_length=10)
-    product_quantity = models.PositiveBigIntegerField(default=1)
+    product_price = models.IntegerField(default=0)
+    product_quantity = models.IntegerField(default=1)
 
     class Meta:
         indexes = [
@@ -160,7 +193,7 @@ class OrderNote(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     title = models.CharField(max_length=150)
     description = models.TextField()
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     class Meta:
         indexes = [
@@ -175,7 +208,7 @@ class Review(models.Model):
     rating = models.DecimalField(max_digits=3, decimal_places=2)
     description = models.TextField()
     is_approved = models.BooleanField()
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     class Meta:
         indexes = [

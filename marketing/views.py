@@ -17,7 +17,7 @@ from common.services import (all_objects, delete_objects, filter_objects,
 from .enums import DiscountType, OfferType
 from .models import Banner, Offer
 from .serializers import BannerSerializer
-from .utils import BannerCache
+from .utils import BannerCache, cached_coupon, cached_flat_discount
 
 
 class BannerViewSet(viewsets.ViewSet):
@@ -136,30 +136,8 @@ class OfferViewSet(viewsets.ViewSet):
         return a response with key `is_valid` (Boolean), 
         `discount_type` (Enum: 'PERCENTAGE', 'FIXED') and `discount_value` (Integer).
         """
-        ip = request.META['REMOTE_ADDR']
-
-        today = datetime.date.today()
-
-        offers = filter_objects(
-            Offer.objects,
-            fields={
-                'duration_day__gte': today,
-                'offer_type': OfferType.PROMO_CODE,
-            },
-            model_name='Offer'
-        )
-
-        for offer in offers:
-            if offer.promo_code == coupon:
-                res = {'is_valid': True, }
-                if offer.discount_type == DiscountType.PERCENTAGE:
-                    res['discount_type'] = 'PERCENTAGE'
-                else:
-                    res['discount_type'] = 'FIXED'
-                res['discount_value'] = offer.discount_value
-                return Response(res, status=status.HTTP_200_OK)
-
-        return Response({'is_valid': False}, status=status.HTTP_200_OK)
+        offer = cached_coupon(coupon)
+        return Response(offer, status=status.HTTP_200_OK)
 
     @action(
         detail=False,
@@ -173,25 +151,5 @@ class OfferViewSet(viewsets.ViewSet):
         return a response with key `is_available` (Boolean), 
         `discount_type` (Enum: 'PERCENTAGE', 'FIXED') and `discount_value` (Integer).
         """
-        today = datetime.date.today()
-
-        offers = filter_objects(
-            Offer.objects,
-            fields={
-                'duration_day__gte': today,
-                'offer_type': OfferType.FLAT_DISCOUNT,
-            },
-            model_name='Offer'
-        )
-
-        if len(offers) > 0:
-            offer = offers[0]
-            res = {'is_available': True, }
-            if offer.discount_type == DiscountType.PERCENTAGE:
-                res['discount_type'] = 'PERCENTAGE'
-            else:
-                res['discount_type'] = 'FIXED'
-            res['discount_value'] = offer.discount_value
-            return Response(res, status=status.HTTP_200_OK)
-
-        return Response({'is_available': False}, status=status.HTTP_200_OK)
+        offer = cached_flat_discount()
+        return Response(offer, status=status.HTTP_200_OK)

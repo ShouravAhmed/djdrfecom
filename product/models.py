@@ -165,8 +165,8 @@ class Product(models.Model):
     store = models.ForeignKey(
         Store, on_delete=models.SET_NULL, null=True, blank=True)
 
-    created_at = models.DateField(auto_now_add=True, editable=False)
-    updated_at = models.DateField(auto_now=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
 
     product_name = models.CharField(max_length=100)
     product_base_price = models.DecimalField(
@@ -282,22 +282,25 @@ class CartProduct(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     size = models.CharField(max_length=30, default="default")
     count = models.IntegerField(default=1)
-    created_at = models.DateField(auto_now_add=True, editable=False)
-    updated_at = models.DateField(auto_now=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=['product', 'user', 'size'],
-                name='unique_cart'
+                name='unique_cart_product'
             ),
         ]
+
+    def __str__(self):
+        return f"{self.user.phone_number} : {self.product.product_name}"
 
 
 class WishListProduct(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     class Meta:
         indexes = [
@@ -307,6 +310,6 @@ class WishListProduct(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['product', 'user'],
-                name='unique_wishlist'
+                name='unique_wishlist_product'
             ),
         ]

@@ -6,7 +6,7 @@ from authentication.models import User
 
 
 class Purchase(models.Model):
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
     registered_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True)
     title = models.CharField(max_length=155)
@@ -33,7 +33,7 @@ class PurchaseImage(models.Model):
 
 
 class AccountBalance(models.Model):
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
     registered_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True)
     current_balance = models.DecimalField(max_digits=10, decimal_places=2)
@@ -59,7 +59,7 @@ class AccountBalanceApproval(models.Model):
 class Investment(models.Model):
     registered_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='registered_investments')
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     investor = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='investments')
@@ -83,8 +83,8 @@ class InvestmentApproval(models.Model):
 
 
 class InvestorShare(models.Model):
-    created_at = models.DateField(auto_now_add=True, editable=False)
-    updated_at = models.DateField(auto_now=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
     investor = models.ForeignKey(User, on_delete=models.CASCADE)
     share_value = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -92,7 +92,7 @@ class InvestorShare(models.Model):
 class Salary(models.Model):
     registered_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='registered_salaries')
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     employee = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='salaries')
@@ -117,7 +117,7 @@ class SalaryApproval(models.Model):
 class InvestmentWithdraw(models.Model):
     registered_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='registered_investment_withdraws')
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     investor = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='investment_withdraws')
@@ -144,7 +144,7 @@ class InvestmentWithdrawApproval(models.Model):
 class ProfitShare(models.Model):
     registered_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True)
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     title = models.CharField(max_length=155)
     description = models.TextField()
@@ -163,7 +163,7 @@ class ProfitShareApproval(models.Model):
 class ProfitShareRecived(models.Model):
     profit_share = models.ForeignKey(
         ProfitShare, on_delete=models.SET_NULL, null=True)
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     title = models.CharField(max_length=155)
     receiver = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -21,10 +21,10 @@ class User(AbstractUser):
     staff_level = models.IntegerField(
         choices=StaffLevel.choices, default=StaffLevel.USER)
 
-    created_at = models.DateField(auto_now_add=True, editable=False)
-    updated_at = models.DateField(auto_now=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
 
-    staff_pass_expire_at = models.DateField(null=True, blank=True)
+    staff_pass_expire_at = models.DateTimeField(null=True, blank=True)
     is_varified = models.BooleanField(default=False)
 
     username = models.CharField(max_length=30, null=True, blank=True)
