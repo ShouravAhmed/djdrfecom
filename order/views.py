@@ -3,6 +3,7 @@ import logging
 
 from django.contrib.auth import authenticate
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import render
 from django.utils.translation import gettext as _
 from django_ratelimit.decorators import ratelimit
@@ -19,8 +20,9 @@ from common.utils import is_vaid_phone_number
 from marketing.utils import cached_coupon, cached_flat_discount
 from product.models import CartProduct, Product, WishListProduct
 
+from .enums import ReviewStatus
 from .models import Order, OrderedProduct
-from .serializers import OrderSerializer
+from .serializers import OrderedProductSerializer, OrderSerializer
 
 logger = logging.getLogger('main')
 
@@ -67,7 +69,7 @@ class OrderViewSet(viewsets.ViewSet):
         serializer = OrderSerializer(
             get_object(
                 all_objects(Order.objects.prefetch_related(
-                    'ordered_products', 'order_notes', 'reviews'), model_name="Order"),
+                    'orderedproduct_set', 'ordernote_set'), model_name="Order"),
                 fields={
                     'order_id': order_id,
                 },
@@ -157,8 +159,8 @@ class OrderViewSet(viewsets.ViewSet):
                         product=product,
                         product_size=item['size'],
                         product_price=(
-                            (int(product.product_selling_price) *
-                             int(product.product_discount)) / 100.0
+                            float(product.product_selling_price) - ((float(product.product_selling_price) *
+                                                                     float(product.product_discount)) / 100.0)
                         ),
                         product_quantity=product_quantity
                     )
@@ -270,3 +272,91 @@ class OrderViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Conform Order Exception: {e}\n")
             return Response({'status': 'FAILED', }, status=status.HTTP_200_OK)
+
+
+class OrderedProductViewSet(viewsets.ViewSet):
+    """
+    Viewset for OrderedProducts
+    """
+    queryset = all_objects(OrderedProduct.objects, model_name="OrderedProduct")
+
+    @extend_schema(responses=OrderedProductSerializer)
+    @permission_classes([permissions.IsAuthenticated])
+    @action(
+        methods=['post'],
+        detail=False,
+        url_path="review",
+        url_name="update_review"
+    )
+    def update_review(self, request):
+        """
+        An endpoint to update a review
+        """
+        try:
+            data = request.data.get('review', {})
+            product = get_object(
+                Product.objects,
+                fields={
+                    'product_id': data['product']['product_id'],
+                },
+                model_name='Product'
+            )
+            order = get_object(
+                Order.objects,
+                fields={
+                    'order_id': data['order']['order_id'],
+                },
+                model_name='Order'
+            )
+            ordered_product = OrderedProduct.objects.get(
+                product=product,
+                order=order,
+                product_size=data['size'],
+            )
+            if ordered_product.review_status == ReviewStatus.APPROVED:
+                return Response({'status': 'FAILED'}, status=status.HTTP_200_OK)
+
+            ordered_product.rating = float(data['rating'])
+            ordered_product.review = data['description']
+            ordered_product.review_status = ReviewStatus.SUBMITTED
+            ordered_product.save()
+
+            return Response({'status': 'OK'}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"exception: {e}")
+            return Response({'status': 'FAILED', }, status=status.HTTP_200_OK)
+
+    @extend_schema(responses=OrderedProductSerializer)
+    @action(
+        methods=['get'],
+        detail=False,
+        url_path=r"review/(?P<product_id>[^/]+)",
+        url_name="product_review_list"
+    )
+    def product_review_list(self, request, product_id=None):
+        """
+        An endpoint to return products reviews by product
+        """
+        user = request.user
+        reviews = filter_objects(
+            all_objects(OrderedProduct.objects, model_name="OrderedProduct"),
+            fields={
+                'product__product_id': product_id,
+            },
+            model_name='OrderedProduct'
+        )
+
+        if user and not user.is_staff:
+            reviews = reviews.filter(
+                Q(review_status=ReviewStatus.APPROVED) | Q(order__customer=user)
+            )
+
+        reviews = reviews.order_by('-rating')
+
+        serializer = OrderedProductSerializer(
+            reviews,
+            many=True,
+            context={'request': request}
+        )
+        return Response(serializer.data)

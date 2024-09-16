@@ -45,7 +45,7 @@ def homepage_products(request):
             total_stock__gt=0
         )
         products = products.annotate(
-            popularity_value=F('product_sale_count') * 5 +
+            popularity_value=F('product_sale_count') * 10 +
             F('product_visit_count') + F('product_wishlist_count') * 2,
         )
         products = products.order_by('-popularity_value', '-total_stock')[:6]

@@ -11,7 +11,7 @@ from common.pathao import PathaoApi
 from product.models import Product, Store
 
 from .enums import (CourierOption, DeliveryType, ItemType, OrderStatus,
-                    PaymentMethod, PaymentStatus)
+                    PaymentMethod, PaymentStatus, ReviewStatus)
 
 logger = logging.getLogger('main')
 
@@ -20,6 +20,9 @@ class City(models.Model):
     courier_choice = models.IntegerField(choices=CourierOption.choices)
     city_id = models.IntegerField(primary_key=True, unique=True)
     name = models.CharField(max_length=50)
+
+    class Meta:
+        unique_together = ['courier_choice', 'name']
 
     class Meta:
         indexes = [
@@ -32,6 +35,9 @@ class Zone(models.Model):
     city = models.ForeignKey(City, on_delete=models.CASCADE)
     zone_id = models.IntegerField(primary_key=True, unique=True)
     name = models.CharField(max_length=100)
+
+    class Meta:
+        unique_together = ['city', 'name']
 
     class Meta:
         indexes = [
@@ -48,7 +54,7 @@ class Area(models.Model):
     pickup_available = models.BooleanField()
 
     class Meta:
-        unique_together = ['area_id', 'name']
+        unique_together = ['zone', 'name']
 
     class Meta:
         indexes = [
@@ -65,6 +71,9 @@ class CourierStore(models.Model):
     city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True)
     zone = models.ForeignKey(Zone, on_delete=models.SET_NULL, null=True)
     area = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        unique_together = ['store', 'courier_choice', 'area']
 
     class Meta:
         indexes = [
@@ -181,12 +190,22 @@ class OrderedProduct(models.Model):
     product_size = models.CharField(max_length=10)
     product_price = models.IntegerField(default=0)
     product_quantity = models.IntegerField(default=1)
+    rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)
+    review = models.TextField(default='')
+    review_status = models.IntegerField(
+        choices=ReviewStatus.choices, default=ReviewStatus.PANDING)
+
+    class Meta:
+        unique_together = ['order', 'product', 'product_size']
 
     class Meta:
         indexes = [
             models.Index(fields=['order']),
             models.Index(fields=['product']),
         ]
+
+    def __str__(self):
+        return self.get_review_status_display() + " | " + self.product_size + " | " + self.product.product_name
 
 
 class OrderNote(models.Model):
@@ -199,20 +218,4 @@ class OrderNote(models.Model):
         indexes = [
             models.Index(fields=['order']),
             models.Index(fields=['title']),
-        ]
-
-
-class Review(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    rating = models.DecimalField(max_digits=3, decimal_places=2)
-    description = models.TextField()
-    is_approved = models.BooleanField()
-    created_at = models.DateTimeField(auto_now_add=True, editable=False)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['order']),
-            models.Index(fields=['product']),
-            models.Index(fields=['is_approved']),
         ]

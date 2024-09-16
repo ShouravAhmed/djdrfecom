@@ -1,28 +1,39 @@
+import logging
+
 from django.db.models import Q
 from rest_framework import serializers
 
 from product.serializers import ProductSerializer
 
-from .models import Order, OrderedProduct, OrderNote, Review
+from .models import Order, OrderedProduct, OrderNote
+
+logger = logging.getLogger('main')
 
 
 class OrderedProductSerializer(serializers.ModelSerializer):
     product = ProductSerializer()
+    review_status = serializers.CharField(source='get_review_status_display')
 
     class Meta:
         model = OrderedProduct
         fields = '__all__'
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        is_admin = self.context['request'].user.is_staff if 'request' in self.context else False
+
+        if is_admin:
+            representation.pop('order', None)
+        representation['reviewer_name'] = instance.order.customer_name
+        representation['review_date'] = instance.order.created_at.strftime(
+            '%B %d, %Y')
+
+        return representation
+
 
 class OrderNoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderNote
-        fields = '__all__'
-
-
-class ReviewSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Review
         fields = '__all__'
 
 
@@ -36,8 +47,6 @@ class OrderSerializer(serializers.ModelSerializer):
 
     ordered_products = OrderedProductSerializer(
         many=True, read_only=True, source='orderedproduct_set')
-
-    reviews = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -53,18 +62,6 @@ class OrderSerializer(serializers.ModelSerializer):
         else:
             self.fields['order_notes'] = OrderNoteSerializer(
                 many=True, read_only=True, source='ordernote_set')
-
-    def get_reviews(self, obj):
-        user = self.context['request'].user if 'request' in self.context else None
-
-        if user and user.is_staff:
-            reviews = obj.review_set.all()
-        else:
-            reviews = obj.review_set.filter(
-                Q(is_approved=True) | Q(order__customer=user)
-            )
-
-        return ReviewSerializer(reviews, many=True, context=self.context).data
 
     def to_representation(self, instance):
         # Get the base representation

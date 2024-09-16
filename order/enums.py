@@ -54,3 +54,9 @@ class PaymentStatus(IntegerChoices):
     PENDING = 0, 'Pending'
     PAID = 1, 'PAID'
     PARTIALLY_PAID = 2, 'Partially Paid'
+
+
+class ReviewStatus(IntegerChoices):
+    PANDING = 1, 'Panding'
+    SUBMITTED = 2, 'Submitted'
+    APPROVED = 3, 'Approved'
