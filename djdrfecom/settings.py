@@ -118,6 +118,7 @@ RATELIMIT_USE_CACHE = 'default'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "http://192.168.0.104:3000"
 ]
 
 REST_FRAMEWORK = {
