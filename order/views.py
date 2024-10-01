@@ -18,7 +18,7 @@ from common.services import (all_objects, delete_objects, filter_objects,
                              get_object)
 from common.utils import is_vaid_phone_number
 from marketing.utils import cached_coupon, cached_flat_discount
-from product.models import CartProduct, Product, WishListProduct
+from product.models import CartProduct, Product, ProductStock
 
 from .enums import ReviewStatus
 from .models import Order, OrderedProduct
@@ -140,19 +140,16 @@ class OrderViewSet(viewsets.ViewSet):
                         },
                         model_name='Product'
                     )
+                    stock = ProductStock.objects.filter(
+                        product=product, size=item['size']).first()
                     product_quantity = min(
-                        int(product.product_stock.get(item['size'], 0)),
-                        int(item['count'])
-                    )
+                        stock.count if stock else 0, int(item['count']))
 
                     if product_quantity <= 0:
                         continue
 
-                    # updated_stock = product.product_stock
-                    # updated_stock[item['size']] = int(
-                    #     updated_stock[item['size']]) - product_quantity
-                    # product.product_stock = updated_stock
-                    # product.save()
+                    stock.count = stock.count - product_quantity
+                    stock.save()
 
                     ordered_product = OrderedProduct.objects.create(
                         order=created_order,

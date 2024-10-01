@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
 from .models import (CartProduct, Product, ProductCategory, ProductDescription,
-                     ProductImage, ProductSizeChart, ProductTag, Store, Tag,
-                     WishListProduct)
+                     ProductImage, ProductSizeChart, ProductStock, ProductTag,
+                     Store, Tag, WishListProduct)
 
 
 class ProductCategorySerializer(serializers.ModelSerializer):
@@ -44,6 +44,7 @@ class ProductSerializer(serializers.ModelSerializer):
     product_description = ProductDescriptionSerializer()
     product_size_chart = ProductSizeChartSerializer()
     store = StoreSerializer()
+    product_stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -51,13 +52,14 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super(ProductSerializer, self).__init__(*args, **kwargs)
-
-        # Check if the user is an admin
         is_admin = self.context['request'].user.is_staff if 'request' in self.context else False
-
-        # Conditionally include or exclude the 'product_base_price' field
         if not is_admin:
             self.fields.pop('product_base_price')
+
+    def get_product_stock(self, obj):
+        stock_entries = ProductStock.objects.filter(product=obj)
+        stock_dict = {entry.size: entry.count for entry in stock_entries}
+        return stock_dict
 
 
 class ProductImageSerializer(serializers.ModelSerializer):

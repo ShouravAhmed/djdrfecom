@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib.auth import authenticate
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import F, Func, Sum, Value
 from django.forms.models import model_to_dict
@@ -18,8 +19,8 @@ from common.services import (all_objects, delete_objects, filter_objects,
                              get_object)
 
 from .models import (CartProduct, Product, ProductCategory, ProductDescription,
-                     ProductImage, ProductSizeChart, ProductTag, Store, Tag,
-                     WishListProduct)
+                     ProductImage, ProductSizeChart, ProductStock, ProductTag,
+                     Store, Tag, WishListProduct)
 from .serializers import (CartProductSerializer, ProductCategorySerializer,
                           ProductDescriptionSerializer, ProductImageSerializer,
                           ProductSerializer, ProductSizeChartSerializer,
@@ -33,10 +34,10 @@ logger = logging.getLogger('main')
 @ratelimit(key='user_or_ip', rate='60/m')
 @api_view(['GET'])
 def homepage_products(request):
+    if data := cache.get("HOMEPAGE_PRODUCTS"):
+        return Response(data, status=status.HTTP_200_OK)
+
     categories = ProductCategory.objects.filter(show_in_home_page=True)
-
-    print("\n", categories, ":", len(categories))
-
     data = {}
     for category in categories:
         products = Product.objects.filter(
@@ -52,7 +53,49 @@ def homepage_products(request):
         serialized_products = ProductSerializer(products, many=True).data
         data[category.title] = serialized_products
 
+    cache.set("HOMEPAGE_PRODUCTS", data, 7200)
     return Response(data, status=status.HTTP_200_OK)
+
+
+@ratelimit(key='user_or_ip', rate='60/m')
+@api_view(['GET'])
+def shop_products(request, query=None):
+    try:
+        if query == 'undefined':
+            query = None
+
+        if data := cache.get(f"SHOP_PRODUCTS_{query}"):
+            return Response(data, status=status.HTTP_200_OK)
+
+        if not query:
+            products = all_objects(Product.objects, model_name="Product")
+            products = products.order_by('?')
+
+            serializer = ProductSerializer(products.distinct(), many=True)
+            cache.set(f"SHOP_PRODUCTS_{query}", serializer.data, 7200)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        keywords = query.split('&')
+        products = Product.objects.none()
+
+        for keyword in keywords:
+            # products_by_name = Product.objects.filter(
+            #     product_name__icontains=keyword)
+            products_by_tag = Product.objects.filter(
+                producttag__tag__name__icontains=keyword)
+            products_by_category = Product.objects.filter(
+                product_category__title__icontains=keyword)
+
+            products = products | products_by_tag | products_by_category
+
+        products = products.order_by('?')
+        serializer = ProductSerializer(products.distinct(), many=True)
+
+        cache.set(f"SHOP_PRODUCTS_{query}", serializer.data, 7200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({}, status=status.HTTP_200_OK)
 
 
 @ratelimit(key='user_or_ip', rate='60/m')
@@ -64,11 +107,12 @@ def search_products(request):
     if not search_text:
         return Response({}, status=status.HTTP_200_OK)
 
-    # Filter products by product name containing search text
+    if data := cache.get(f"SEARCH_PRODUCTS_{search_text}"):
+        return Response(data, status=status.HTTP_200_OK)
+
     products_by_name = Product.objects.filter(
         product_name__icontains=search_text)
 
-    # Filter products by tags containing search text
     products_by_tag = Product.objects.filter(
         producttag__tag__name__icontains=search_text)
 
@@ -76,15 +120,14 @@ def search_products(request):
         product_category__title__icontains=search_text
     )
 
-    # Combine both querysets using OR operator (|)
     products = products_by_name | products_by_tag | products_by_category
-
     serializer = ProductSerializer(products.distinct(), many=True)
+
+    cache.set(f"SEARCH_PRODUCTS_{search_text}", serializer.data, 7200)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ProductCategoryViewSet(viewsets.ViewSet):
-    # Parsers used for processing the request data
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     cache_provider = ProductCategoryCache()
     queryset = all_objects(ProductCategory.objects,
@@ -476,6 +519,9 @@ class ProductViewSet(viewsets.ViewSet):
         """
         An endpoint to return products by category `slug`
         """
+        if data := cache.get(f"CATEGORY_PRODUCTS_{category}"):
+            return Response(data, status=status.HTTP_200_OK)
+
         serializer = ProductSerializer(
             filter_objects(
                 all_objects(Product.objects, model_name="Product"),
@@ -487,6 +533,8 @@ class ProductViewSet(viewsets.ViewSet):
             ),
             many=True
         )
+
+        cache.set(f"CATEGORY_PRODUCTS_{category}", serializer.data, 7200)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(responses=ProductSerializer)
@@ -553,9 +601,15 @@ class ProductViewSet(viewsets.ViewSet):
             instance.product_discount = product_data.get('product_discount')
             instance.is_archived = product_data.get('is_archived')
             instance.video_url = product_data.get('video_url')
-            instance.product_stock = stock
             instance.save()
 
+            for key, value in stock.items():
+                stock, created = ProductStock.objects.get_or_create(
+                    product=instance,
+                    size=key
+                )
+                stock.count = value
+                stock.save()
         else:
             instance = Product.objects.create(
                 product_category=category,
@@ -567,12 +621,16 @@ class ProductViewSet(viewsets.ViewSet):
                     'product_selling_price'),
                 product_discount=product_data.get('product_discount'),
                 is_archived=product_data.get('is_archived'),
-                video_url=product_data.get('video_url'),
-                product_stock=stock
+                video_url=product_data.get('video_url')
             )
-            print("\nsacing instance:")
             instance.save()
-            print("instance:", instance, "\n")
+            for key, value in stock.items():
+                stock, created = ProductStock.objects.get_or_create(
+                    product=instance,
+                    size=key
+                )
+                stock.count = value
+                stock.save()
 
         serializer = ProductSerializer(
             all_objects(Product.objects, model_name="Product"),
@@ -990,7 +1048,9 @@ class CartProductViewSet(viewsets.ViewSet):
         is_deleted = False
 
         for item in cart_items:
-            current_stock = int(item.product.product_stock.get(item.size, 0))
+            stock = ProductStock.objects.filter(
+                product=item.product, size=item.size)
+            current_stock = stock[0].count if len(stock) > 0 else 0
 
             logger.info(
                 f"in cart: {item.count} | current_stock: {current_stock}")

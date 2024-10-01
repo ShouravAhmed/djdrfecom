@@ -180,7 +180,6 @@ class Product(models.Model):
     product_visit_count = models.IntegerField(default=0)
     product_wishlist_count = models.IntegerField(default=0)
 
-    product_stock = models.JSONField()
     total_stock = models.IntegerField(default=0)
     video_url = models.CharField(max_length=100, null=True, blank=True)
 
@@ -197,7 +196,6 @@ class Product(models.Model):
             self.profile_image_blurhash = blurhash.encode(
                 self.profile_image.open(), x_components=6, y_components=3)
         self.slug = get_slug(self.product_name)
-        self.total_stock = sum(self.product_stock.values())
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -215,6 +213,23 @@ class Product(models.Model):
             models.Index(fields=['product_category']),
             models.Index(fields=['product_name']),
         ]
+
+
+class ProductStock(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    size = models.CharField(max_length=10)
+    count = models.IntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['product', 'size'],
+                name='unique_product_stock'
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.size} : {self.count} : {self.product.product_name}"
 
 
 class ProductImage(models.Model):

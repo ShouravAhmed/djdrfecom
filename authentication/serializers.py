@@ -16,7 +16,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta(object):
         model = User
         fields = ['phone_number', 'full_name',
-                  'address', 'email', 'points', 'date_joined', 'staff_level', 'is_staff']
+                  'address', 'email', 'points', 'date_joined', 'staff_level', 'is_staff', 'is_varified']
 
 
 class LoginSerializer(TokenObtainPairSerializer):
@@ -67,6 +67,10 @@ class LoginSerializer(TokenObtainPairSerializer):
             if not authenticate(username=user.username, password=password):
                 raise serializers.ValidationError(
                     _("Staff requires a correct password to login!"), code='authorization')
+
+        if not user.is_varified:
+            user.is_varified = True
+            user.save()
 
         refresh = RefreshToken.for_user(user)
         serializer = UserSerializer(user, many=False)

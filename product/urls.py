@@ -1,11 +1,11 @@
-from django.urls import include, path
+from django.urls import include, path, re_path
 from rest_framework.routers import DefaultRouter
 
 from .views import (CartProductViewSet, ProductCategoryViewSet,
                     ProductDescriptionViewSet, ProductImageViewSet,
                     ProductSizeChartViewSet, ProductTagViewSet, ProductViewSet,
                     StoreViewSet, WishListProductViewSet, homepage_products,
-                    search_products)
+                    search_products, shop_products)
 
 router = DefaultRouter()
 router.register(r"category", ProductCategoryViewSet)
@@ -22,4 +22,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('homepage-products/', homepage_products, name='homepage_products'),
     path('search/', search_products, name='search_products'),
+    re_path(r'^shop/(?P<query>.*)/$', shop_products, name='shop_products')
 ]
