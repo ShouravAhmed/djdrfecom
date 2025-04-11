@@ -1,3 +1,4 @@
+import blurhash
 from django.apps import apps
 from django.db import models
 
@@ -5,7 +6,7 @@ from authentication.models import User
 
 
 class Purchase(models.Model):
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
     registered_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True)
     title = models.CharField(max_length=155)
@@ -20,18 +21,32 @@ class PurchaseApproval(models.Model):
     is_approved = models.BooleanField()
 
 
-class PurchasePhoto(models.Model):
+class PurchaseImage(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE)
-    photo_url = models.CharField(max_length=255)
+    image = models.ImageField(null=True, blank=True)
+    image_blurhash = models.CharField(max_length=100, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        self.image_blurhash = blurhash.encode(
+            self.image.open(), x_components=6, y_components=3)
+        super().save(*args, **kwargs)
 
 
 class AccountBalance(models.Model):
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
     registered_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True)
     current_balance = models.DecimalField(max_digits=10, decimal_places=2)
-    document_picture_url = models.CharField(max_length=255)
     is_approved = models.BooleanField()
+
+    document_image = models.ImageField(null=True, blank=True)
+    document_image_blurhash = models.CharField(
+        max_length=100, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        self.document_image_blurhash = blurhash.encode(
+            self.document_image.open(), x_components=6, y_components=3)
+        super().save(*args, **kwargs)
 
 
 class AccountBalanceApproval(models.Model):
@@ -44,13 +59,21 @@ class AccountBalanceApproval(models.Model):
 class Investment(models.Model):
     registered_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='registered_investments')
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     investor = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='investments')
     invested_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    document_picture_url = models.CharField(max_length=255)
     is_approved = models.BooleanField()
+
+    document_image = models.ImageField(null=True, blank=True)
+    document_image_blurhash = models.CharField(
+        max_length=100, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        self.document_image_blurhash = blurhash.encode(
+            self.document_image.open(), x_components=6, y_components=3)
+        super().save(*args, **kwargs)
 
 
 class InvestmentApproval(models.Model):
@@ -60,8 +83,8 @@ class InvestmentApproval(models.Model):
 
 
 class InvestorShare(models.Model):
-    created_at = models.DateField(auto_now_add=True, editable=False)
-    updated_at = models.DateField(auto_now=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
     investor = models.ForeignKey(User, on_delete=models.CASCADE)
     share_value = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -69,7 +92,7 @@ class InvestorShare(models.Model):
 class Salary(models.Model):
     registered_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='registered_salaries')
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     employee = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='salaries')
@@ -94,13 +117,21 @@ class SalaryApproval(models.Model):
 class InvestmentWithdraw(models.Model):
     registered_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='registered_investment_withdraws')
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     investor = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='investment_withdraws')
     withdraw_amount = models.PositiveIntegerField()
-    document_picture_url = models.CharField(max_length=255)
     is_approved = models.BooleanField()
+
+    document_image = models.ImageField(null=True, blank=True)
+    document_image_blurhash = models.CharField(
+        max_length=100, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        self.document_image_blurhash = blurhash.encode(
+            self.document_image.open(), x_components=6, y_components=3)
+        super().save(*args, **kwargs)
 
 
 class InvestmentWithdrawApproval(models.Model):
@@ -113,7 +144,7 @@ class InvestmentWithdrawApproval(models.Model):
 class ProfitShare(models.Model):
     registered_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True)
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     title = models.CharField(max_length=155)
     description = models.TextField()
@@ -132,7 +163,7 @@ class ProfitShareApproval(models.Model):
 class ProfitShareRecived(models.Model):
     profit_share = models.ForeignKey(
         ProfitShare, on_delete=models.SET_NULL, null=True)
-    created_at = models.DateField(auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     title = models.CharField(max_length=155)
     receiver = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -4,7 +4,7 @@ from .models import *
 
 admin.site.register(Purchase)
 admin.site.register(PurchaseApproval)
-admin.site.register(PurchasePhoto)
+admin.site.register(PurchaseImage)
 admin.site.register(AccountBalance)
 admin.site.register(AccountBalanceApproval)
 admin.site.register(Investment)

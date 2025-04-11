@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -19,14 +21,21 @@ class User(AbstractUser):
     staff_level = models.IntegerField(
         choices=StaffLevel.choices, default=StaffLevel.USER)
 
-    created_at = models.DateField(auto_now_add=True, editable=False)
-    updated_at = models.DateField(auto_now=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
+
+    staff_pass_expire_at = models.DateTimeField(null=True, blank=True)
     is_varified = models.BooleanField(default=False)
 
     username = models.CharField(max_length=30, null=True, blank=True)
 
+    def set_password(self, raw_password):
+        self.staff_pass_expire_at = datetime.now() + timedelta(days=30)
+        super().set_password(raw_password)
+
     def save(self, *args, **kwargs):
         self.id = self.phone_number
+        self.username = self.phone_number
         super(User, self).save(*args, **kwargs)
 
     USERNAME_FIELD = 'phone_number'

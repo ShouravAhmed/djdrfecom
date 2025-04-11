@@ -1,15 +1,23 @@
+import blurhash
 from django.apps import apps
 from django.db import models
 
 from product.models import Product
 
-from .enums import OfferType
+from .enums import DiscountType, OfferType
 
 
 class Banner(models.Model):
     title = models.CharField(max_length=100, unique=True)
-    photo_url = models.CharField(max_length=255)
+    image = models.ImageField(null=True, blank=True)
+    image_blurhash = models.CharField(max_length=100, blank=True, null=True)
     redirect_url = models.CharField(max_length=255)
+    banner_order = models.IntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        self.image_blurhash = blurhash.encode(
+            self.image.open(), x_components=6, y_components=3)
+        super().save(*args, **kwargs)
 
     class Meta:
         indexes = [
@@ -22,7 +30,9 @@ class Offer(models.Model):
     title = models.CharField(max_length=100)
     description = models.TextField()
 
-    cover_picture_url = models.CharField(max_length=255)
+    cover_image = models.ImageField(null=True, blank=True)
+    cover_image_blurhash = models.CharField(
+        max_length=100, blank=True, null=True)
     redirect_url = models.CharField(max_length=255)
 
     sms_notify = models.BooleanField()
@@ -31,11 +41,25 @@ class Offer(models.Model):
 
     notification_frequency_day = models.IntegerField()
     sms_frequency_day = models.IntegerField()
-    duration_day = models.IntegerField()
-    promo_code = models.CharField(max_length=50)
+    promo_code = models.CharField(max_length=50, null=True, blank=True)
 
-    minimum_purchase = models.IntegerField()
-    DiscountPercentage = models.IntegerField()
+    duration_day = models.DateTimeField()
+    minimum_purchase = models.IntegerField(default=0)
+
+    discount_type = models.IntegerField(choices=DiscountType.choices)
+    discount_value = models.IntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        try:
+            self.cover_image_blurhash = blurhash.encode(
+                self.cover_image.open(), x_components=6, y_components=3)
+        except Exception as e:
+            print("Offer Model Save Exception:", e)
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
 
     class Meta:
         indexes = [
@@ -61,7 +85,9 @@ class Notification(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
 
-    cover_picture_url = models.CharField(max_length=255)
+    cover_image = models.ImageField(null=True, blank=True)
+    cover_image_blurhash = models.CharField(
+        max_length=100, blank=True, null=True)
     redirect_url = models.CharField(max_length=255)
 
     sms_notify = models.BooleanField()
@@ -72,6 +98,11 @@ class Notification(models.Model):
     sms_frequency_day = models.IntegerField()
 
     expire_on = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        self.cover_image_blurhash = blurhash.encode(
+            self.cover_image.open(), x_components=6, y_components=3)
+        super().save(*args, **kwargs)
 
     class Meta:
         indexes = [
